@@ -1,5 +1,5 @@
-name: my_webview_app
-description: "A new Flutter project."
+name: gonggo_gonggu
+description: "공고공구 - 공고 정보 공유 플랫폼"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

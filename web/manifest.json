@@ -1,11 +1,11 @@
 {
-    "name": "my_webview_app",
-    "short_name": "my_webview_app",
+    "name": "공고공구",
+    "short_name": "공고공구",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "공고 정보 공유 플랫폼",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

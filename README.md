@@ -1,6 +1,6 @@
-# my_webview_app
+# 공고공구
 
-A new Flutter project.
+공고 정보 공유 플랫폼 - Flutter WebView 기반 앱
 
 ## Getting Started
 
