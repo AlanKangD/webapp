@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'firebase_messaging_handler.dart';
 
 // 백그라운드 메시지 핸들러 등록
@@ -51,6 +52,7 @@ class _WebViewPageState extends State<WebViewPage> {
   late final WebViewController controller;
   bool isLoading = true;
   String? fcmToken;
+  static const String mainUrl = 'http://125.241.251.235:3000';
 
   @override
   void initState() {
@@ -86,9 +88,30 @@ class _WebViewPageState extends State<WebViewPage> {
           onWebResourceError: (WebResourceError error) {
             debugPrint('WebView error: ${error.description}');
           },
+          onNavigationRequest: (NavigationRequest request) {
+            final uri = Uri.parse(request.url);
+
+            // 메인 도메인 내부 링크는 WebView에서 허용
+            if (uri.host == '125.241.251.235' && uri.port == 3000) {
+              debugPrint('메인 도메인 내부 링크: ${request.url}');
+              return NavigationDecision.navigate;
+            }
+
+            // 같은 도메인의 다른 포트도 허용하려면 아래 주석 해제
+            // if (uri.host == '125.241.251.235') {
+            //   return NavigationDecision.navigate;
+            // }
+
+            // 외부 링크는 외부 브라우저로 열기
+            debugPrint('외부 링크 감지: ${request.url}');
+            _launchExternalUrl(request.url);
+
+            // WebView에서의 네비게이션 차단
+            return NavigationDecision.prevent;
+          },
         ),
       )
-      ..loadRequest(Uri.parse('http://125.241.251.235:3000/'));
+      ..loadRequest(Uri.parse('$mainUrl/'));
   }
 
   Future<void> _initializeFCM() async {
@@ -213,10 +236,62 @@ class _WebViewPageState extends State<WebViewPage> {
     // 알림 클릭 시 특정 URL로 이동하거나 데이터 전달
     if (message.data.containsKey('url')) {
       final url = message.data['url'];
-      controller.loadRequest(Uri.parse(url));
+      final uri = Uri.parse(url);
+
+      // 메인 도메인이면 WebView에서 로드
+      if (uri.host == '125.241.251.235' && uri.port == 3000) {
+        controller.loadRequest(uri);
+      } else {
+        // 외부 링크는 외부 브라우저로 열기
+        _launchExternalUrl(url);
+      }
     } else {
       // WebView로 알림 데이터 전달
       _sendMessageToWebView(message);
+    }
+  }
+
+  Future<void> _launchExternalUrl(String url) async {
+    debugPrint('외부 브라우저로 열기 시도: $url');
+    final uri = Uri.parse(url);
+
+    try {
+      // URL이 유효한지 확인
+      if (!uri.hasScheme) {
+        // scheme이 없으면 http:// 추가
+        final fixedUrl = 'http://$url';
+        final fixedUri = Uri.parse(fixedUrl);
+        if (await canLaunchUrl(fixedUri)) {
+          await launchUrl(fixedUri, mode: LaunchMode.externalApplication);
+          debugPrint('외부 브라우저로 열기 성공: $fixedUrl');
+          return;
+        }
+      }
+
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        debugPrint('외부 브라우저로 열기 성공: $url');
+      } else {
+        debugPrint('URL을 열 수 없습니다: $url');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('링크를 열 수 없습니다'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('URL 실행 오류: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('오류가 발생했습니다: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
